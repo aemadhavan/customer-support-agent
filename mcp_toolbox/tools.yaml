@@ -1,0 +1,64 @@
+sources:
+  customer-support-db:
+    kind: postgres
+    host: 127.0.0.1
+    port: 5432
+    database: customer_support
+    user: toolbox_user
+    password: toolbox_pass
+
+tools:
+  get-order-status:
+    kind: postgres-sql
+    source: customer-support-db
+    description: "Look up order details and delivery status for a specific order owned by the customer."
+    parameters:
+      - name: order_id
+        type: integer
+        description: "The unique order ID integer to look up."
+      - name: customer_email
+        type: string
+        description: "The authenticated customer's email address."
+    statement: |
+      SELECT order_id, customer_email, delivery_address, status, items, order_date, total_amount
+      FROM customer_orders
+      WHERE order_id = $1 AND customer_email = $2;
+
+  find-customer-orders:
+    kind: postgres-sql
+    source: customer-support-db
+    description: "List all past and current orders for the customer, ordered from newest to oldest."
+    parameters:
+      - name: customer_email
+        type: string
+        description: "The authenticated customer's email address."
+    statement: |
+      SELECT order_id, customer_email, delivery_address, status, items, order_date, total_amount
+      FROM customer_orders
+      WHERE customer_email = $1
+      ORDER BY order_date DESC;
+
+  action-log:
+    kind: postgres-sql
+    source: customer-support-db
+    description: "Record a customer's requested action (e.g. CANCEL_ORDER, RETURN_ORDER, UPDATE_ADDRESS, UPDATE_PREFERENCE, UPDATE_PROFILE) for downstream processing."
+    parameters:
+      - name: user_email
+        type: string
+        description: "The customer's email address requesting the change."
+      - name: action_type
+        type: string
+        description: "Action type enum: must be one of CANCEL_ORDER, RETURN_ORDER, UPDATE_ADDRESS, UPDATE_PREFERENCE, UPDATE_PROFILE."
+      - name: parameters
+        type: string
+        description: "JSON string containing action details such as order_id, new address, or reason."
+    statement: |
+      INSERT INTO actions_log (user_email, action_type, parameters)
+      VALUES ($1, $2, $3::jsonb)
+      RETURNING id, timestamp, user_email, action_type, parameters;
+
+toolsets:
+  customer-support-tools:
+    - get-order-status
+    - find-customer-orders
+    - action-log

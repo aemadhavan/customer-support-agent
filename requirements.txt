@@ -1,0 +1,16 @@
+google-adk
+toolbox-core
+mem0ai
+fastapi
+uvicorn
+httpx
+python-dotenv
+arize-phoenix
+openinference-instrumentation-google-genai
+openinference-semantic-conventions
+opentelemetry-sdk
+opentelemetry-exporter-otlp-proto-http
+psycopg2-binary
+pytest
+pydantic
+pyyaml
